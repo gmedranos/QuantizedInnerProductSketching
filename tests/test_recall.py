@@ -26,9 +26,6 @@ def recall_test(num_tests, sizesPSQ, sizesSH):
 
     with open('data/arrays.pkl', 'rb') as f:
         vectors = pickle.load(f)
-
-    with open('data/arrays_recall.pkl', 'rb') as f:
-        vectors_recall = pickle.load(f)
     
     with open('data/arrays_queries.pkl', 'rb') as f:
         vectors_q = pickle.load(f)

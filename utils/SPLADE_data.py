@@ -31,7 +31,6 @@ def create_vector(num_vectors):
         with torch.no_grad():
             doc_rep = model(d_kwargs=tokenizer(doc, return_tensors="pt"))["d_rep"].squeeze()  # (sparse) doc rep in voc space, shape (30522,)
         vectors.append((i, np.array(doc_rep)))
-        print(i)
 
 
     with open('data/arrays.pkl', 'wb') as f:
