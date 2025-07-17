@@ -22,7 +22,7 @@ def create_queries(num_vectors):
     reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
 
 
-    df = pd.read_csv("./docleaderboard-queries.tsv", on_bad_lines='warn', sep='\t', header=None)
+    df = pd.read_csv("./queries.dev.tsv", on_bad_lines='warn', sep='\t', header=None)
     vectors = []
 
     for i in range(0, num_vectors):
