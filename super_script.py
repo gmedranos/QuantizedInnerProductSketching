@@ -1,5 +1,5 @@
 from utils.SPLADE_data import create_vector
-from utils.create_SH import create_sh_sk
+from utils.create_SH import create_sh_sk, create_sh_sk_faster
 from utils.create_PSQ import create_sk_PS
 from tests.test_recall import recall_test
 from tests.test_ip import test_ip
@@ -34,7 +34,7 @@ if (__name__ == "__main__"):
         print(datetime.timedelta(seconds = t_e - t))
     if(args.sketchesSH):
         t = time.time()
-        create_sh_sk(sizesSH)
+        create_sh_sk_faster(sizesSH)
         t_e = time.time()
         print("Time to create SH sketches: ")
         print(datetime.timedelta(seconds = t_e - t))
@@ -47,7 +47,7 @@ if (__name__ == "__main__"):
     
     if(args.q):
         t = time.time()
-        create_queries(200)
+        create_queries(100)
         t_e = time.time()
         print("Time to create queries: ")
         print(datetime.timedelta(seconds = t_e - t))
