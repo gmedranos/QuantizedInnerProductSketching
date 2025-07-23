@@ -2,6 +2,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from .abstract_class import InnerProdSketcher, InnerProdSketch, hash_kwise
 from scipy.sparse import vstack
+import scipy as sp
 
 class SHSketch(InnerProdSketch):
     def __init__(self, norm, signs, sketch_size):
@@ -20,7 +21,7 @@ class SH(InnerProdSketcher):
         self.seed = seed
 
     def sketch(self, vector):
-        dim = vector.shape[1]
+        dim = vector.shape[0]
         vec = []
         rng = np.random.default_rng(seed = self.seed)
         for i in range(0, self.sketch_size):
@@ -30,10 +31,11 @@ class SH(InnerProdSketcher):
         
         vec = np.array(vec)
 
-        return SHSketch(np.linalg.norm(vector.toarray()[0]), np.sign(vec), self.sketch_size)
+        return SHSketch(np.linalg.norm(vector.toarray()), np.sign(vec), self.sketch_size)
     
     # Get a list of vectors to sketch
     def batch_sketch(self, vectors):
+        vectors = [v.reshape(1, -1) for v in vectors]
         dim = vectors[0].shape[1]
         rng = np.random.default_rng(seed=self.seed)
         num_vectors = len(vectors)
@@ -50,7 +52,7 @@ class SH(InnerProdSketcher):
         list_of_sk = []
         count = 0
         for i in lists:
-            list_of_sk.append(SHSketch(np.linalg.norm(vectors[count].toarray()[0]), i, self.sketch_size))
+            list_of_sk.append(SHSketch(np.linalg.norm(vectors[count].toarray()), i, self.sketch_size))
             count += 1
         
         return list_of_sk

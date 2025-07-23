@@ -10,7 +10,7 @@ class StandardVec():
     def __init__(self, vec):
         self.vec = vec
     def inner_product(self, other):
-        return other.vec.toarray()[0].dot(self.vec.toarray()[0])
+        return other.vec.toarray().dot(self.vec.toarray())
 
 cwd = os.getcwd()
 sys.path.append(cwd)
@@ -33,7 +33,7 @@ def recall_test(num_tests, sizesPSQ, sizesSH):
     with open('data/psq_sketchers.pkl', 'rb') as f:
         sks = pickle.load(f)
 
-    recall_sizes = [50, 100, 500, 1000]
+    recall_sizes = [1, 5, 10, 1000]
     
     for k in recall_sizes:
         recallPS = []
@@ -54,7 +54,7 @@ def recall_test(num_tests, sizesPSQ, sizesSH):
             ps = sks[i]
             for j in range(0, num_tests): 
                 #print(np.size(np.nonzero(vectors_q[j][1])))
-                s = ps.sketch(vectors_q[j][1].toarray()[0])
+                s = ps.sketch(vectors_q[j][1].toarray())
                 ss = sh.sketch(vectors_q[j][1])    
 
                 q = idx.query(StandardVec(vectors_q[j][1]), k)
