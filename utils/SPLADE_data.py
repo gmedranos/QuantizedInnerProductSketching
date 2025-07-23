@@ -5,6 +5,7 @@ import os
 import numpy as np
 import pickle
 import pandas as pd
+from scipy.sparse import coo_array
 cwd = os.getcwd()
 sys.path.append(cwd)
 
@@ -30,7 +31,8 @@ def create_vector(num_vectors):
         doc = df[df.columns[1]][i]
         with torch.no_grad():
             doc_rep = model(d_kwargs=tokenizer(doc, return_tensors="pt"))["d_rep"].squeeze()  # (sparse) doc rep in voc space, shape (30522,)
-        vectors.append((i, np.array(doc_rep)))
+        
+        vectors.append((i, coo_array(doc_rep)))
 
 
     with open('data/arrays.pkl', 'wb') as f:

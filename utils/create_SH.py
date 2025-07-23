@@ -47,5 +47,4 @@ def create_sh_sk_faster(list_sizes):
         list_return.append(list_total)
 
     with open('data/sh_sketches.pkl', 'wb') as f:
-        print(list_return)
         pickle.dump(list_return, f)

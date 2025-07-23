@@ -4,6 +4,7 @@ import sys
 import os
 import numpy as np
 import pickle
+from scipy.sparse import coo_array
 import pandas as pd
 cwd = os.getcwd()
 sys.path.append(cwd)
@@ -30,7 +31,7 @@ def create_queries(num_vectors):
         doc = df[df.columns[1]][i]
         with torch.no_grad():
             doc_rep = model(d_kwargs=tokenizer(doc, return_tensors="pt"))["d_rep"].squeeze()  # (sparse) doc rep in voc space, shape (30522,)
-        vectors.append((i, np.array(doc_rep)))
+        vectors.append((i, coo_array(doc_rep)))
 
     with open('data/arrays_queries.pkl', 'wb') as f:
         pickle.dump(vectors, f)

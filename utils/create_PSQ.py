@@ -22,7 +22,8 @@ def create_sk_PS(list_sizes):
         sketcher = PSQ(j, j + 2)
         list_sh = []
         for i in vectors:
-            sk = sketcher.sketch(i[1])
+            # Turn into a dense representation
+            sk = sketcher.sketch(i[1].toarray()[0])
             list_sh.append((i[0], sk))
         list_total.append(list_sh)
         print("One size done!")

@@ -28,7 +28,7 @@ if (__name__ == "__main__"):
     sizesSH = [256, 512, 1024, 2048]
     if(args.vectors):
         t = time.time()
-        create_vector(20000)
+        create_vector(10000)
         t_e = time.time()
         print("Time to create vectors: ")
         print(datetime.timedelta(seconds = t_e - t))
@@ -47,13 +47,13 @@ if (__name__ == "__main__"):
     
     if(args.q):
         t = time.time()
-        create_queries(100)
+        create_queries(50)
         t_e = time.time()
         print("Time to create queries: ")
         print(datetime.timedelta(seconds = t_e - t))
     if(args.recall):
         t = time.time()
-        recall_test(100, sizesPSQ, sizesSH)
+        recall_test(50, sizesPSQ, sizesSH)
         t_e = time.time()
         print("Time to test recall: ")
         print(datetime.timedelta(seconds = t_e - t))

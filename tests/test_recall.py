@@ -10,7 +10,7 @@ class StandardVec():
     def __init__(self, vec):
         self.vec = vec
     def inner_product(self, other):
-        return self.vec @ other.vec
+        return other.vec.toarray()[0].dot(self.vec.toarray()[0])
 
 cwd = os.getcwd()
 sys.path.append(cwd)
@@ -54,7 +54,7 @@ def recall_test(num_tests, sizesPSQ, sizesSH):
             ps = sks[i]
             for j in range(0, num_tests): 
                 #print(np.size(np.nonzero(vectors_q[j][1])))
-                s = ps.sketch(vectors_q[j][1])
+                s = ps.sketch(vectors_q[j][1].toarray()[0])
                 ss = sh.sketch(vectors_q[j][1])    
 
                 q = idx.query(StandardVec(vectors_q[j][1]), k)
