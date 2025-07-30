@@ -52,7 +52,7 @@ class SH(InnerProdSketcher):
         list_of_sk = []
         count = 0
         for i in lists:
-            list_of_sk.append(SHSketch(np.linalg.norm(vectors[count].toarray()), i, self.sketch_size))
+            list_of_sk.append(SHSketch(np.linalg.norm(vectors[count].toarray()), np.array(i, dtype=np.int8), self.sketch_size))
             count += 1
         
         return list_of_sk
