@@ -39,8 +39,8 @@ def compute_adaptive_threshold(vector, target_size, l_norm=2, delta=1e-6):
 
 def hash_kwise(vector, seed, dimension_num=1, k_wise=4, PRIME=2147483587):
     # if input is vector, treat index of values as keys
-    keys = [i for i,v in enumerate(vector) if v != 0]
-    values = [v for v in vector if v != 0]
+    keys = [i for i,v in enumerate(vector) ]
+    values = [v for v in vector]
     keys = np.array(keys, dtype=np.int32)
     values = np.array(values)
     return hash_kwise_kv(keys, values, seed, dimension_num, k_wise, PRIME)

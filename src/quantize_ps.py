@@ -6,11 +6,21 @@ from scipy.optimize import fsolve
 import hashlib
 
 def seeded_hash(value, seed):
-    seed_bytes = str(seed).encode()
+    seed_bytes = seed.encode()
     value_bytes = value.encode()
     hash = hashlib.blake2b(value_bytes, digest_size=8, key = seed_bytes).digest()
 
     return int.from_bytes(hash, byteorder='big')
+
+def seeded_hash1(value, seed):
+    value = value + seed
+    value ^= value >> 16
+    value *= 0x21f0aaad
+    value ^= value >> 15
+    value *= 0x735a2d97
+    value ^= value >> 15
+    return value & 0xFFFFFFFF
+
 
 def quantize(epsilon, a):
     dim = len(a)
@@ -27,6 +37,20 @@ def quantize(epsilon, a):
             new_a[i] = 0
     return new_a*sinal
 
+def quantize_faster(epsilon, a):
+    dim = len(a)
+    new_a = np.zeros(dim)
+    sinal = np.sign(a)
+    a = a* sinal
+
+    idx = np.round(np.log(a *dim / epsilon) / np.log(1 + epsilon))
+    new_a = epsilon*(1 + epsilon) ** idx / dim
+    new_a = np.minimum(new_a, 1)
+    new_a[new_a < epsilon / dim] = 0
+    
+    return new_a*sinal
+
+
 def eq_epsilon(epsilon, n, intervals):
     return  np.log2(n / epsilon)  / np.log2(1 + epsilon) + 2 - intervals
 
@@ -38,12 +62,24 @@ def myhash(a, seed):
     return h / 2**64
 
 def hash1(a, seed):
-    h = seeded_hash(str(a), (seed))
+    h = seeded_hash(str(a), str(seed))
     return (h // 2**63 - 0.5) * 2 // 1
 
 def hash32int(a, seed, bits):
     h = seeded_hash(str(a), str(seed))
     return h // 2**(64 - bits)
+
+def myhash1(a, seed):
+    h = seeded_hash1(a, seed)
+    return h / 2**32
+
+def hash11(a, seed):
+    h = seeded_hash1(a, seed)
+    return (h // 2**31 - 0.5) * 2 // 1
+
+def hash321int(a, seed, bits):
+    h = seeded_hash1(a, seed)
+    return h // 2**(32 - bits)
 
 
 class PSQSketch(InnerProdSketch):
@@ -109,5 +145,37 @@ class PSQ(InnerProdSketcher):
                     Ka[idx_h] = [(vector[i], hash1(i, self.seed + 1))]
                 else:
                     Ka[idx_h].append((vector[i], hash1(i, self.seed + 1)))
+
+        return PSQSketch(Ka, ta, norm, self.seed)
+
+    def sketch_fast(self, vector : np.ndarray) -> PSQSketch:
+        dim = len(vector)
+        # Instead of Ka and Va, I'll just use a dictionary from idx to value
+        Ka = {}
+        norm = np.linalg.norm(vector)
+
+        vector = vector / norm
+        vector = quantize_faster(find_epsilon(4, len(vector)), vector)
+        #vector = quantize(0.00003, vector)
+
+
+        #idx_hash = vHash(idx, self.seed)
+        idx_hash = hash_kwise(vector, 1)[0]
+        Ra = idx_hash / vector**2
+
+
+        self.sketch_size = min(dim, self.sketch_size)
+        partition = np.argpartition(Ra, self.sketch_size)
+        ta = Ra[partition[self.sketch_size]]
+        
+        # Slow
+        for j in range(0, self.sketch_size):
+            i = partition[j]
+            idx_h = hash32int(i, self.seed + 2, 12)
+            #idx_h = i
+            if(idx_h not in Ka):
+                Ka[idx_h] = [(vector[i], hash1(i, self.seed + 1))]
+            else:
+                Ka[idx_h].append((vector[i], hash1(i, self.seed + 1)))
 
         return PSQSketch(Ka, ta, norm, self.seed)
