@@ -30,8 +30,6 @@ def recall_test(num_tests, sizesPSQ, sizesSH):
     with open('data/arrays_queries.pkl', 'rb') as f:
         vectors_q = pickle.load(f)
 
-    with open('data/psq_sketchers.pkl', 'rb') as f:
-        sks = pickle.load(f)
 
     recall_sizes = [50, 100, 500, 1000]
     
@@ -51,7 +49,7 @@ def recall_test(num_tests, sizesPSQ, sizesSH):
             idxSH.insert_vectors(vectors_sh[i])
 
             sh = SH(sizesSH[i], sizesSH[i])
-            ps = sks[i]
+            ps = PSQ(sizesPSQ[i], sizesPSQ[i] + 2)
             for j in range(0, num_tests): 
                 #print(np.size(np.nonzero(vectors_q[j][1])))
                 s = ps.sketch_fast(vectors_q[j][1].toarray())
@@ -75,8 +73,5 @@ def recall_test(num_tests, sizesPSQ, sizesSH):
         print("For k = "  + str(k) + ":")
         print(recallSH)
         print(recallPS)
-
-
-
 
 

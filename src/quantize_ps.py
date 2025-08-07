@@ -2,6 +2,9 @@ import numpy as np
 from abc import ABC, abstractmethod
 from .abstract_class import InnerProdSketcher, InnerProdSketch, hash_kwise
 from scipy.optimize import fsolve
+from pympler import asizeof
+from collections import defaultdict
+
 
 import hashlib
 
@@ -94,19 +97,57 @@ class PSQSketch(InnerProdSketch):
         soma = 0
         for i in listA:
             for j in listB:
-                soma += i[0]*j[0]*i[1]*j[1] / min(1, i[0] ** 2 * ta, j[0] ** 2 * tb)
+                soma += i*j / min(1, i ** 2 * ta, j ** 2 * tb)
+
         return soma
 
-    def inner_product(self, other):
-        idxA = set(self.K.keys())
-        idxB = set(other.K.keys())
+    def inner_product1(self, other):
+        K = {}
+        K_other = {}
+
+        for i in range(0, len(self.K[0])):
+            if(self.K[0][i] in K):
+                K[self.K[0][i]].append(self.K[1][i])
+            else:
+                K[self.K[0][i]] = [self.K[1][i]]
+            
+            if(other.K[0][i] in K_other):
+                K_other[other.K[0][i]].append(other.K[1][i])
+            else:
+                K_other[other.K[0][i]] = [other.K[1][i]]
+            
+
+        idxA = set(K.keys())
+        idxB = set(K_other.keys())
 
         inter = idxA.intersection(idxB)
-        sum = 0 
+        sum = 0
+
         for i in inter:
-            sum += self.list_prod(self.K[i], other.K[i], self.t, other.t)
+            sum += self.list_prod(K[i], K_other[i], self.t, other.t)
+        
         return sum * self.norm * other.norm
     
+    def list_prod2(self, vec1, vec2, ta, tb):
+        vec1 = np.array([vec1])
+        vec2 = np.array([vec2])
+        prods = vec1.T @ vec2
+
+        A = ta * np.tile(vec1.T, (1,  len(vec2[0]))) ** 2
+        B = tb * np.tile(vec2, (len(vec1[0]), 1)) ** 2
+
+        denominator = np.minimum(A, B)
+        denominator = np.minimum(denominator, np.ones(denominator.shape))
+        
+        return np.sum((prods / denominator))
+
+    def inner_product(self, other):
+        sum = 0
+    
+        for i in np.intersect1d(self.K[0], other.K[0]):
+            sum += self.list_prod(self.K[1][self.K[0] == i], other.K[1][other.K[0] == i], self.t, other.t)
+
+        return sum * self.norm * other.norm
 
 class PSQ(InnerProdSketcher):
     def __init__(self, sketch_size: int, seed: int) -> None:
@@ -156,26 +197,25 @@ class PSQ(InnerProdSketcher):
 
         vector = vector / norm
         vector = quantize_faster(find_epsilon(4, len(vector)), vector)
-        #vector = quantize(0.00003, vector)
 
-
-        #idx_hash = vHash(idx, self.seed)
         idx_hash = hash_kwise(vector, 1)[0]
         Ra = idx_hash / vector**2
-
 
         self.sketch_size = min(dim, self.sketch_size)
         partition = np.argpartition(Ra, self.sketch_size)
         ta = Ra[partition[self.sketch_size]]
-        
-        # Slow
-        for j in range(0, self.sketch_size):
-            i = partition[j]
-            idx_h = hash32int(i, self.seed + 2, 12)
-            #idx_h = i
-            if(idx_h not in Ka):
-                Ka[idx_h] = [(vector[i], hash1(i, self.seed + 1))]
-            else:
-                Ka[idx_h].append((vector[i], hash1(i, self.seed + 1)))
 
-        return PSQSketch(Ka, ta, norm, self.seed)
+        vHash = np.vectorize(hash1)
+        vHash.excluded.add(1)
+
+        vHash2 = np.vectorize(hash32int)
+        vHash.excluded.add(1)
+        vHash.excluded.add(2)
+
+            
+        idxs = partition[:self.sketch_size].copy()
+        values = vector[idxs].copy() * vHash(idxs, self.seed + 1)
+
+        idxs = np.int32(vHash2(idxs, self.seed + 2, 12))
+
+        return PSQSketch((idxs, values), ta, norm, self.seed)
