@@ -33,6 +33,13 @@ class SH(InnerProdSketcher):
 
         return SHSketch(np.linalg.norm(vector.toarray()), np.sign(vec), self.sketch_size)
     
+    def sketch_all(self, vectors, batch_size = 50000):
+        list_of_sk = []
+
+        for i in range(0, len(vectors) // batch_size + 1):
+            list_of_sk = list_of_sk + self.batch_sketch(vectors[i*batch_size : (i + 1) *batch_size + 1])
+        return list_of_sk
+
     # Get a list of vectors to sketch
     def batch_sketch(self, vectors):
         vectors = [v.reshape(1, -1) for v in vectors]

@@ -2,7 +2,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from .abstract_class import InnerProdSketcher, InnerProdSketch, hash_kwise
 from scipy.optimize import fsolve
-from pympler import asizeof
+
 from collections import defaultdict
 
 

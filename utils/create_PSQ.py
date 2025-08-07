@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import pandas as pd
 import sys
-from pympler import asizeof
+
 import gc
 cwd = os.getcwd()
 sys.path.append(cwd)
