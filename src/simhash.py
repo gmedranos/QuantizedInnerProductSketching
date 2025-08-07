@@ -36,8 +36,8 @@ class SH(InnerProdSketcher):
     def sketch_all(self, vectors, batch_size = 50000):
         list_of_sk = []
 
-        for i in range(0, len(vectors) // batch_size + 1):
-            list_of_sk = list_of_sk + self.batch_sketch(vectors[i*batch_size : (i + 1) *batch_size + 1])
+        for i in range(0, (len(vectors) - 1) // batch_size + 1):
+            list_of_sk = list_of_sk + self.batch_sketch(vectors[i*batch_size : (i + 1) *batch_size])
         return list_of_sk
 
     # Get a list of vectors to sketch
