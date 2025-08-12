@@ -128,23 +128,13 @@ class PSQSketch(InnerProdSketch):
         
         return sum * self.norm * other.norm
     
-    def list_prod2(self, vec1, vec2, ta, tb):
-        vec1 = np.array([vec1])
-        vec2 = np.array([vec2])
-        prods = vec1.T @ vec2
-
-        A = ta * np.tile(vec1.T, (1,  len(vec2[0]))) ** 2
-        B = tb * np.tile(vec2, (len(vec1[0]), 1)) ** 2
-
-        denominator = np.minimum(A, B)
-        denominator = np.minimum(denominator, np.ones(denominator.shape))
-        
-        return np.sum((prods / denominator))
 
     def inner_product(self, other):
         sum = 0
-    
-        for i in np.intersect1d(self.K[0], other.K[0]):
+        set1 = set(self.K[0])
+        set2 = set(other.K[0])
+
+        for i in set1.intersection(set2):
             sum += self.list_prod(self.K[1][self.K[0] == i], other.K[1][other.K[0] == i], self.t, other.t)
 
         return sum * self.norm * other.norm

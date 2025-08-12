@@ -34,12 +34,11 @@ def create_sh_sk_faster(list_sizes):
         vectors = pickle.load(f)
 
     list_return = []
-    print(len(vectors))
     for j in list_sizes:
         sketcher = SH(j, j)
         list_total = []
 
-        list_sh = sketcher.batch_sketch([i[1] for i in vectors])
+        list_sh = sketcher.sketch_all([i[1] for i in vectors], 100000)
         for i in range(0, len(list_sh)):
             list_total.append((vectors[i][0], list_sh[i]))
 
@@ -48,3 +47,22 @@ def create_sh_sk_faster(list_sizes):
 
     with open('data/sh_sketches.pkl', 'wb') as f:
         pickle.dump(list_return, f)
+
+def create_sh_separate(list_sizes):
+    with open('data/arrays.pkl', 'rb') as f:
+        vectors = pickle.load(f)
+
+    list_return = []
+    print(len(vectors))
+    for j in list_sizes:
+        sketcher = SH(j, j)
+        list_total = []
+
+        list_sh = sketcher.sketch_all([i[1] for i in vectors], 100000)
+        for i in range(0, len(list_sh)):
+            list_total.append((vectors[i][0], list_sh[i]))
+
+        print("One size done!")
+
+        with open('data/sh_sketches' + str(j) + '.pkl', 'wb') as f:
+            pickle.dump(list_total, f)
