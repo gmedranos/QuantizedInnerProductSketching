@@ -78,7 +78,7 @@ def recall_test(num_tests, sizesPSQ, sizesSH):
         print(recallPS)
 
 # This is more memory efficient
-def recall_test_efficient(num_tests, sizesPSQ, sizesSH, num_vectors = None, recall_sizes=[50, 100, 500, 1000]):
+def recall_test_efficient(num_tests, sizesPSQ, sizesSH, num_vectors = None, recall_sizes=[50, 100, 500, 1000], path='data/psq_sketches'):
     # Bit size = sizesSH
     
     with open('data/arrays_queries.pkl', 'rb') as f:
@@ -115,7 +115,7 @@ def recall_test_efficient(num_tests, sizesPSQ, sizesSH, num_vectors = None, reca
     PSQ_values = []
     for i in range(0, len(sizesSH)):
         size_answers = []
-        with open('data/psq_sketches' + str(sizesSH[i]) + ".pkl", 'rb') as f:
+        with open(path + str(sizesSH[i]) + ".pkl", 'rb') as f:
             psq_sketches = pickle.load(f)
         
         psq_sketches = psq_sketches[:num_vectors]
@@ -130,7 +130,7 @@ def recall_test_efficient(num_tests, sizesPSQ, sizesSH, num_vectors = None, reca
             q = idxPSQ.query(ps.sketch_fast(vectors_q[j][1].toarray()), recall_sizes[-1])
             
             PSQ_answers = []
-            
+            '''
             print("Query:")
             print(ps.sketch_fast(vectors_q[j][1].toarray()).K)
             print(ps.sketch_fast(vectors_q[j][1].toarray()).t)
@@ -142,14 +142,8 @@ def recall_test_efficient(num_tests, sizesPSQ, sizesSH, num_vectors = None, reca
             print("Real best:")
             print(ps.sketch_fast(best[1].vec.toarray()).t)
             print(ps.sketch_fast(best[1].vec.toarray()).K)
-            
-
+            '''
             for k in recall_sizes:
-                if(k == 50):
-                    print("------------")
-                    for i in q[:50]:
-                        print(i[1].t)
-                    print("------------")
                 test_answer = set([i[0] for i in q[:k]])
                 PSQ_answers.append(test_answer)
             size_answers.append(PSQ_answers)
@@ -205,5 +199,7 @@ def recall_test_efficient(num_tests, sizesPSQ, sizesSH, num_vectors = None, reca
         print("For k = " + str(recall_sizes[i]))
         print(np.array(scores_sh).T[i])
         print(np.array(scores_psq).T[i])
+
+    return np.array(scores_sh).T, np.array(scores_psq).T
 
 

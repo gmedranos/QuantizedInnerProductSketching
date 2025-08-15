@@ -97,7 +97,7 @@ class PSQSketch(InnerProdSketch):
         soma = 0
         for i in listA:
             for j in listB:
-                soma += i*j
+                soma += i*j / min(1, i** 2 *ta, j **2 * tb)
 
         return soma
 
@@ -140,9 +140,11 @@ class PSQSketch(InnerProdSketch):
         return sum * self.norm * other.norm
 
 class PSQ(InnerProdSketcher):
-    def __init__(self, sketch_size: int, seed: int) -> None:
+    def __init__(self, sketch_size: int, seed: int, float_size=4, key_size= 12) -> None:
         self.sketch_size: int = sketch_size
         self.seed: int = seed
+        self.float_size = float_size
+        self.key_size = key_size
     
     def sketch(self, vector : np.ndarray) -> PSQSketch:
         dim = len(vector)
@@ -152,7 +154,7 @@ class PSQ(InnerProdSketcher):
         norm = np.linalg.norm(vector)
 
         vector = vector / norm
-        vector = quantize(find_epsilon(4, len(vector)), vector)
+        vector = quantize(find_epsilon(self.float_size, len(vector)), vector)
         #vector = quantize(0.00003, vector)
 
         vHash = np.vectorize(myhash)
@@ -170,7 +172,7 @@ class PSQ(InnerProdSketcher):
         # Slow
         for i in range(0, dim):
             if(Ra[i] < ta):
-                idx_h = hash32int(i, self.seed + 2, 12)
+                idx_h = hash32int(i, self.seed + 2, self.key_size)
                 #idx_h = i
                 if(idx_h not in Ka):
                     Ka[idx_h] = [(vector[i], hash1(i, self.seed + 1))]
@@ -186,13 +188,13 @@ class PSQ(InnerProdSketcher):
         norm = np.linalg.norm(vector)
 
         vector = vector / norm
-        vector = quantize_faster(find_epsilon(4, len(vector)), vector)
+        vector = quantize_faster(find_epsilon(self.float_size, len(vector)), vector)
 
         idx_hash = hash_kwise(vector, 1)[0]
         Ra = idx_hash / vector**2
 
         self.sketch_size = min(dim, self.sketch_size)
-        partition = np.argpartition(Ra, self.sketch_size)
+        partition = np.argsort(Ra)
         ta = Ra[partition[self.sketch_size]]
 
         vHash = np.vectorize(hash1)
@@ -206,6 +208,6 @@ class PSQ(InnerProdSketcher):
         idxs = partition[:self.sketch_size].copy()
         values = vector[idxs].copy() * vHash(idxs, self.seed + 1)
 
-        idxs = np.int32(vHash2(idxs, self.seed + 2, 12))
+        idxs = np.int32(vHash2(idxs, self.seed + 2, self.key_size))
 
         return PSQSketch((idxs, values), ta, norm, self.seed)
