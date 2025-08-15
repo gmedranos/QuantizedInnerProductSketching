@@ -97,7 +97,7 @@ class PSQSketch(InnerProdSketch):
         soma = 0
         for i in listA:
             for j in listB:
-                soma += i*j / min(1, i ** 2 * ta, j ** 2 * tb)
+                soma += i*j
 
         return soma
 
