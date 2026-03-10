@@ -2,6 +2,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from .abstract_class import InnerProdSketcher, InnerProdSketch, hash_kwise
 from scipy.optimize import fsolve
+from scipy.sparse import coo_array
 
 from collections import defaultdict
 
@@ -84,35 +85,82 @@ def hash321int(a, seed, bits):
     h = seeded_hash1(a, seed)
     return h // 2**(32 - bits)
 
+def angle(v1, v2):
+    # Calculate the dot product
+    dot_product = np.dot(v1, v2)
+    
+    # Calculate the magnitudes (L2 norms) of both vectors
+    norm_v1 = np.linalg.norm(v1)
+    norm_v2 = np.linalg.norm(v2)
+    
+    # Check for zero vectors to avoid division by zero
+    if norm_v1 == 0 or norm_v2 == 0:
+        raise ValueError("Cannot compute the angle with a zero vector.")
+        
+    # Calculate the cosine of the angle
+    cos_theta = dot_product / (norm_v1 * norm_v2)
+    
+    # Clip cos_theta to the valid range [-1.0, 1.0] 
+    # This prevents NaN errors from np.arccos due to floating-point rounding
+    cos_theta = np.clip(cos_theta, -1.0, 1.0)
+    
+    # Calculate the angle in radians, then convert to degrees
+    angle_rad = np.arccos(cos_theta)
+    angle_deg = np.degrees(angle_rad)
+    
+    return angle_deg
 
 class SandSSketch(InnerProdSketch):
-    def __init__(self, sampled_vector, sketch, sketch_class, sketch_size, seed, mode='new'):
+    def __init__(self, sampled_vector, sketch, sketch_class, sketch_size, seed, mode='new', vector=None, sketcher=None):
         self.sampled_vector = sampled_vector
         self.sketch = sketch
         self.sketch_class = sketch_class
         self.sketch_size = sketch_size
         self.seed = seed
         self.mode = mode
+        self.vector = vector
+        self.sketcher = sketcher
 
-    def inner_product(self, other):
+    def inner_product(self, other, matrix=None):
         sketcher = self.sketch_class(self.sketch_size, self.seed)
-
+        
         W1, W2, W3, W4 = 0, 0, 0, 0
 
-        W1 = self.sampled_vector @ other.sampled_vector
+        self.sketch.set_matrix(matrix)
+        other.sketch.set_matrix(matrix)
+        W1 = self.sampled_vector.toarray() @ other.sampled_vector.toarray()
         if(self.mode != 'new'):
-            W2 = sketcher.sketch(self.sampled_vector).inner_product(other.sketch)
-            W3 = sketcher.sketch(other.sampled_vector).inner_product(self.sketch)
+            W2 = sketcher.sketch(self.sampled_vector.toarray()).inner_product(other.sketch)
+            W3 = sketcher.sketch(other.sampled_vector.toarray()).inner_product(self.sketch)
         else:
-            W2 = self.sketch.QJL(other.sampled_vector)
-            W3 = other.sketch.QJL(self.sampled_vector)
+            W2 = self.sketch.QJL(other.sampled_vector.toarray())
+            W3 = other.sketch.QJL(self.sampled_vector.toarray())
             
         W4 = self.sketch.inner_product(other.sketch)
 
-        #print(self.sampled_vector @ other.sampled_vector, " ", self.vector @ other.sampled_vector, " ", self.sampled_vector @ other.vector, " ", self.vector @ other.vector)
-        #print(W1, " ", W2, " ", W3, " ", W4)
+        self.sketch.set_matrix(None)
+        other.sketch.set_matrix(None)
+
+        '''
+        print("True split")
+        print(self.sampled_vector.toarray() @ other.sampled_vector.toarray(), " ", self.vector @ other.sampled_vector, " ", self.sampled_vector @ other.vector, " ", self.vector @ other.vector)
+        print(angle(self.sampled_vector.toarray(), other.sampled_vector.toarray()), " ", angle(self.vector, other.sampled_vector), " ", angle(self.sampled_vector, other.vector), " ", angle(self.vector, other.vector))
+        '''
         return W1 + W2 + W3 + W4
     
+    def inner_product_asymetric(self, vec, matrix=None):
+        sampled_vector = self.sampled_vector.toarray()
+        sketcher = self.sketch_class(self.sketch_size, self.seed)
+        sketcher.set_matrix(matrix)
+
+        W1 = sampled_vector @ vec
+        vec_to_sketch = np.zeros(len(vec))
+        vec_to_sketch[sampled_vector == 0] = vec[sampled_vector == 0]
+        W2 = self.sketch.inner_product(sketcher.sketch(vec_to_sketch))
+
+        sketcher.set_matrix(None)
+        return W1 + W2
+
     def get_norm(self):
         return np.sqrt(np.linalg.norm(self.sampled_vector) ** 2 + self.sketch.get_norm()**2)
 
@@ -153,15 +201,15 @@ class Sample_and_sketch(InnerProdSketcher):
 
         sampled_vector = np.zeros(dim)
         sampled_vector[idxs] = values
+        sampled_vector = coo_array(sampled_vector)
 
         vector[idxs] = 0
         # Then I sketch the rest
 
         sketcher = self.sketch_class(self.sketch_size, self.seed, self.matrix)
         sketch = sketcher.sketch(vector)
-        sketch.set_matrix(self.matrix)
 
-        return SandSSketch(sampled_vector, sketch, self.sketch_class, self.sketch_size, self.seed, self.mode)
+        return SandSSketch(sampled_vector, sketch, self.sketch_class, self.sketch_size, self.seed, self.mode, None, None)
     
     def batch_sketch(self, vectors):
         sketches_list = []
@@ -189,7 +237,7 @@ class Sample_and_sketch(InnerProdSketcher):
 
             sampled_vector = np.zeros(dim)
             sampled_vector[idxs] = values
-            samples_list.append(sampled_vector)
+            samples_list.append(coo_array(sampled_vector))
 
             vector[idxs] = 0
             # Then I sketch the rest
@@ -203,4 +251,7 @@ class Sample_and_sketch(InnerProdSketcher):
             sketches_list.append(SandSSketch(samples_list[i], sh_list[i], self.sketch_class, self.sketch_size, self.seed, self.mode))
 
         return sketches_list
+
+    def get_matrix(self):
+        return self.matrix
     

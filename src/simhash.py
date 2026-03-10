@@ -34,7 +34,7 @@ class SHSketch(InnerProdSketch):
             Sq = np.array(Sq)
             return np.sqrt(np.pi / 2) / self.sketch_size * self.norm * (Sq @ self.signs)
 
-        return np.sqrt(np.pi / 2) / self.sketch_size * self.norm * ((self.matrix @ vector) @ self.signs)
+        return np.sqrt(np.pi / 2) / self.sketch_size * self.norm * np.dot(np.matmul(self.matrix, vector), self.signs)
 
     def get_vector(self):
         angles = np.zeros(self.len)
@@ -53,6 +53,14 @@ class SHSketch(InnerProdSketch):
 
     def set_matrix(self, matrix):
         self.matrix = matrix
+
+    def get_matrix(self, dim):
+        rng = np.random.default_rng(self.seed)
+        matrix = []
+        for i in range(0, self.sketch_size):
+            matrix.append(rng.normal(0, 1, dim))
+        
+        return np.array(matrix)
 
 class SH(InnerProdSketcher):
     def __init__(self, sketch_size, seed, matrix=None):
@@ -75,7 +83,7 @@ class SH(InnerProdSketcher):
         else:
             vec = self.matrix @ vector
 
-        return SHSketch(np.linalg.norm(vector), np.sign(vec), self.sketch_size, dim, self.seed)
+        return SHSketch(np.linalg.norm(vector), np.int8(np.sign(vec)), self.sketch_size, dim, self.seed)
     
     def sketch_all(self, vectors, batch_size = 50000):
         list_of_sk = []
@@ -133,3 +141,6 @@ class SH(InnerProdSketcher):
             count += 1
         
         return list_of_sk
+
+    def set_matrix(self, matrix):
+        self.matrix = matrix
