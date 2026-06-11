@@ -7,13 +7,6 @@ and should be put in the project folder.
 
 ### Running the code
 
-To run the code, one should use the command `python3 super_script.py -flags`, where flags is one or more of the following:
+To create the embeddings, one should use the command `python3 super_script.py -vectors`
 
-1. -vectors : create the embeddings for the vectors
-2. -sketchesSH: create the SimHash sketches for the vectors that were created with the -vectors
-3. -sketchesPSQ: create the Quantized Priority sketches for the vectors that were created with the -vectors
-4. -q: create the embeddings for the queries vectors
-5. -ip: test the inner product from random samples from vectors
-6. -recall: test the recall
-
-Given the size of the test, it might take a while to run, so you can change the values in line 32 of the super_script.py so you run it in a smaller dataset.
+The experiments for the workshop paper are available in the three notebooks: "workshop_arxiv.ipynb", "workshop_splade.ipynb" and "workshop_synthetic_experiments.ipynb"
