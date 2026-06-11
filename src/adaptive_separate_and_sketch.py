@@ -242,7 +242,8 @@ class ASaS(InnerProdSketcher):
         vector_tail = np.zeros_like(vector)
 
         vector_head[idxs_big] = vector[idxs_big]
-
+        
+        # Use float16 here
         vector_head = np.float16(vector_head)
         vector_tail[idxs_small] = vector[idxs_small]
 
@@ -252,6 +253,11 @@ class ASaS(InnerProdSketcher):
             sketcher_small = self.tail_sketch_class(tail_size, self.seed)
         sketch_small = sketcher_small.sketch(vector_tail)
         
+
+        #Have to upscale to float 32 here because scipy does not allow for sparse vectors with float16
+        #Note that this does not change the value so the experiments are still the same if we kept float16
+        vector_head = np.float32(vector_head)
+
         #print(idxs_big)
         #print(compute_var(vector_head, vector_tail, vector_head, vector_tail, tail_size, tail_size))
         return ASASSketch(coo_array(vector_head), sketch_small, self.seed, self.tail_sketch_class, tail_size, vector_tail)
