@@ -198,7 +198,7 @@ class SaS(InnerProdSketcher):
         #print(compute_var(vector_head, vector_tail, vector_head, vector_tail, self.tail_size))
 
         #Upscale because scipy does not support sparse 16float vectors
-        vector_head = np.float16(vector_head)
+        vector_head = np.float32(vector_head)
 
 
         return SASSketch(coo_array(vector_head), sketch_small, self.seed, self.tail_sketch_class, self.tail_size, head_norm, vector_tail)
