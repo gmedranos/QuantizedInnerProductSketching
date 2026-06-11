@@ -13,7 +13,8 @@ class SHSketch(InnerProdSketch):
         self.seed = seed
         self.matrix = None
 
-    def inner_product(self, other):
+    # Matrix does not do anything, but dont remove it
+    def inner_product(self, other, matrix=None):
         min_size = min(len(self.signs), len(other.signs))
 
         if(self.sketch_size != 0):
@@ -21,7 +22,7 @@ class SHSketch(InnerProdSketch):
             return self.norm * other.norm * np.cos((1 - sum / min_size) * np.pi)
         return 0
     
-    def QJL(self, vector):
+    def inner_product_asym(self, vector):
         rng = np.random.default_rng(seed = self.seed)
         if self.sketch_size == 0:
             return 0
@@ -34,7 +35,7 @@ class SHSketch(InnerProdSketch):
             Sq = np.array(Sq)
             return np.sqrt(np.pi / 2) / self.sketch_size * self.norm * (Sq @ self.signs)
 
-        return np.sqrt(np.pi / 2) / self.sketch_size * self.norm * np.dot(np.matmul(self.matrix, vector), self.signs)
+        return np.sqrt(np.pi / 2) / self.sketch_size * self.norm * np.dot(np.matmul(self.matrix[:self.sketch_size], vector), self.signs)
 
     def get_vector(self):
         angles = np.zeros(self.len)
@@ -61,12 +62,21 @@ class SHSketch(InnerProdSketch):
             matrix.append(rng.normal(0, 1, dim))
         
         return np.array(matrix)
+    
+    def test(self):
+        return self.matrix
 
 class SH(InnerProdSketcher):
-    def __init__(self, sketch_size, seed, matrix=None):
+    def __init__(self, sketch_size, seed, matrix=None, dim=None):
         self.sketch_size = sketch_size
         self.seed = seed
-        self.matrix = matrix
+        if(matrix is not None):
+            self.matrix=matrix
+        elif(dim is not None):
+            rng = np.random.default_rng(self.seed)
+            self.matrix = rng.normal(0, 1, (sketch_size, dim))
+        else:
+            self.matrix = None
 
     def sketch(self, vector):
         dim = vector.shape[0]
@@ -144,3 +154,6 @@ class SH(InnerProdSketcher):
 
     def set_matrix(self, matrix):
         self.matrix = matrix
+    
+    def get_matrix(self):
+        return self.matrix
