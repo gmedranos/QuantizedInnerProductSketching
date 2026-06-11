@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from .abstract_class import InnerProdSketcher, InnerProdSketch, hash_kwise
 from scipy.optimize import fsolve
 from .priority_sampling import PSSketch, PS
+from scipy.sparse import coo_array
 
 from collections import defaultdict
 
@@ -78,6 +79,13 @@ def compute_threshold(a, x):
     vec_sorted = sorted(a)
     return vec_sorted[min(n - x - 1, n - 1)]
 
+def compute_var(ah, at, bh, bt, sketch):
+    norm_ah = np.linalg.norm(ah)**2
+    norm_at = np.linalg.norm(at)**2
+    norm_bh = np.linalg.norm(bh)**2
+    norm_bt = np.linalg.norm(bt)**2
+    return (norm_ah * norm_bt + norm_at * norm_bh + norm_at * norm_bt) / sketch
+
 
 class SASSketch(InnerProdSketch):
     def __init__(self, head_vec, tail_sketch, seed, sketcher_class_tail, tail_size, head_norm, true_tail=None):
@@ -88,54 +96,66 @@ class SASSketch(InnerProdSketch):
         self.seed = seed
         self.head_norm = head_norm
         self.true_tail = true_tail
-
-
-    def inner_product(self, other):
-        sketcher = self.sketcher_class_tail(self.tail_size, self.seed)
-
-        W1, W2, W3, W4 = 0, 0, 0, 0
-        if(self.head_norm != 0):
-            W1 = self.head_vec @ other.head_vec * self.head_norm * other.head_norm
-
-            W2 = self.tail_sketch.inner_product(sketcher.sketch(other.head_vec)) * self.head_norm
-
-            W3 = other.tail_sketch.inner_product(sketcher.sketch(self.head_vec)) * other.head_norm
-
-        W4 = self.tail_sketch.inner_product(other.tail_sketch)
-
-        #print(W1, " ", W2, " ", W3, " ", W4)
-        return W1 + W2 + W3 + W4
     
-    def inner_product_test(self, other, matrix=None):
+    def inner_product(self, other, matrix=None):
         sketcher = self.sketcher_class_tail(self.tail_size, self.seed)
-        idxs = np.where((self.head_vec != 0) & (other.head_vec != 0))[0]
+                
+        head_vec = self.head_vec.astype(np.float32).toarray()
+        other_head_vec = other.head_vec.astype(np.float32).toarray()
+        idxs = np.where((head_vec != 0) & (other_head_vec != 0))[0]
+
 
         W1, W2, W3, W4 = 0, 0, 0, 0
 
-        W1 = self.head_vec @ other.head_vec
+        W1 = np.float64(head_vec) @ np.float64(other_head_vec)
 
         self.tail_sketch.set_matrix(matrix)
         other.tail_sketch.set_matrix(matrix)
 
-        other_sampled_overlap = np.copy(other.head_vec)
+        other_sampled_overlap = np.copy(other_head_vec)
         other_sampled_overlap[idxs] = 0 
 
-        self_sampled_overlap = np.copy(self.head_vec)
+        self_sampled_overlap = np.copy(head_vec)
         self_sampled_overlap[idxs] = 0 
 
-        W2 = self.tail_sketch.QJL(other_sampled_overlap)
-        W3 = other.tail_sketch.QJL(self_sampled_overlap)
+        W2 = self.tail_sketch.inner_product_asym(other_sampled_overlap)
+        W3 = other.tail_sketch.inner_product_asym(self_sampled_overlap)
 
         self.tail_sketch.set_matrix(None)
         other.tail_sketch.set_matrix(None)
             
         W4 = self.tail_sketch.inner_product(other.tail_sketch)
 
-
+        #print(compute_var(self.head_vec, self.true_tail, other.head_vec, other.true_tail, self.tail_size))
         #print(W1, " ", W2, " ", W3, " ", W4)
         #print(self.head_vec @ other.head_vec, " ", self.true_tail @ other.head_vec, " ", other.true_tail @ self.head_vec, " ", self.true_tail @ other.true_tail)
 
         return W1 + W2 + W3 + W4
+    
+    '''    def inner_product_asym(self, vec, matrix=None):
+        head_vec = self.head_vec.astype(np.float32).toarray()
+        self.tail_sketch.set_matrix(matrix)
+
+        W1 = head_vec @ vec
+        vec_to_sketch = np.zeros(len(vec))
+        vec_to_sketch[head_vec == 0] = vec[head_vec == 0]
+        W2 = self.tail_sketch.inner_product_asym(vec_to_sketch)
+
+        self.tail_sketch.set_matrix(None)
+        return W1 + W2
+    '''
+    def inner_product_asym(self, vec, matrix=None):
+        head_vec = self.head_vec.astype(np.float32).toarray()
+        sketcher = self.sketcher_class_tail(self.tail_size, self.seed)
+        sketcher.set_matrix(matrix)
+
+        W1 = head_vec @ vec
+        vec_to_sketch = np.zeros(len(vec))
+        vec_to_sketch[head_vec == 0] = vec[head_vec == 0]
+        W2 = self.tail_sketch.inner_product(sketcher.sketch(vec_to_sketch))
+
+        sketcher.set_matrix(None)
+        return W1 + W2
 
 class SaS(InnerProdSketcher):
     def __init__(self, head_size, tail_size, seed: int, tail_sketch_class, dim=None) -> None:
@@ -143,6 +163,7 @@ class SaS(InnerProdSketcher):
         self.tail_size = tail_size
         self.seed: int = seed
         self.tail_sketch_class = tail_sketch_class
+        self.matrix = None
         if(dim != None):
             # Get the random matrix to make QJL faster
             rng = np.random.default_rng(seed = self.seed)
@@ -153,12 +174,12 @@ class SaS(InnerProdSketcher):
         dim = len(vector)
         norm = np.linalg.norm(vector)
         
-        T = compute_threshold(vector, self.head_size // int (np.ceil(np.log2(dim)) + 16))
+        T = compute_threshold(np.abs(vector), self.head_size // int (np.ceil(np.log2(dim)) + 16))
 
         idxs = np.arange(len(vector))
 
-        idxs_big = idxs[vector > T]
-        idxs_small = idxs[vector <= T]
+        idxs_big = idxs[np.abs(vector) > T]
+        idxs_small = idxs[np.abs(vector) <= T]
 
         #print(idxs_big)
 
@@ -173,9 +194,14 @@ class SaS(InnerProdSketcher):
 
         sketcher_small = self.tail_sketch_class(self.tail_size, self.seed, self.matrix)
         sketch_small = sketcher_small.sketch(vector_tail)
+        #print(np.linalg.norm(vector_head), np.linalg.norm(vector_tail))
+        #print(compute_var(vector_head, vector_tail, vector_head, vector_tail, self.tail_size))
 
 
-        return SASSketch(vector_head, sketch_small, self.seed, self.tail_sketch_class, self.tail_size, head_norm, vector_tail)
+        return SASSketch(coo_array(vector_head), sketch_small, self.seed, self.tail_sketch_class, self.tail_size, head_norm, vector_tail)
+    
+    def sketch_asym(self, vector : np.ndarray):
+        return self.sketch(vector)
     
     def get_matrix(self):
         return self.matrix
