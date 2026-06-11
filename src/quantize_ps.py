@@ -129,7 +129,7 @@ class PSQSketch(InnerProdSketch):
         return sum * self.norm * other.norm
     
 
-    def inner_product(self, other):
+    def inner_product(self, other, matrix=None):
         sum = 0
         set1 = set(self.K[0])
         set2 = set(other.K[0])
@@ -145,69 +145,39 @@ class PSQ(InnerProdSketcher):
         self.seed: int = seed
         self.float_size = float_size
         self.key_size = key_size
-    
+
     def sketch(self, vector : np.ndarray) -> PSQSketch:
         dim = len(vector)
-        idx = np.arange(dim)
+        num_samples = self.sketch_size // int(16 + self.key_size + 1)
         # Instead of Ka and Va, I'll just use a dictionary from idx to value
         Ka = {}
         norm = np.linalg.norm(vector)
 
         vector = vector / norm
-        vector = quantize(find_epsilon(self.float_size, len(vector)), vector)
-        #vector = quantize(0.00003, vector)
+        #vector = quantize_faster(find_epsilon(self.float_size, len(vector)), vector)
+        vector = np.float16(vector)
 
-        vHash = np.vectorize(myhash)
-        vHash.excluded.add(1)
-
-        idx_hash = vHash(idx, self.seed)
+        idx_hash = hash_kwise(vector, self.seed)[0]
         Ra = idx_hash / vector**2
 
-
-        if (self.sketch_size < dim):
-            ta = np.sort(Ra)[self.sketch_size]
-        else:
-            ta = np.inf
-        
-        # Slow
-        for i in range(0, dim):
-            if(Ra[i] < ta):
-                idx_h = hash32int(i, self.seed + 2, self.key_size)
-                #idx_h = i
-                if(idx_h not in Ka):
-                    Ka[idx_h] = [(vector[i], hash1(i, self.seed + 1))]
-                else:
-                    Ka[idx_h].append((vector[i], hash1(i, self.seed + 1)))
-
-        return PSQSketch(Ka, ta, norm, self.seed)
-
-    def sketch_fast(self, vector : np.ndarray) -> PSQSketch:
-        dim = len(vector)
-        # Instead of Ka and Va, I'll just use a dictionary from idx to value
-        Ka = {}
-        norm = np.linalg.norm(vector)
-
-        vector = vector / norm
-        vector = quantize_faster(find_epsilon(self.float_size, len(vector)), vector)
-
-        idx_hash = hash_kwise(vector, 1)[0]
-        Ra = idx_hash / vector**2
-
-        self.sketch_size = min(dim, self.sketch_size)
+        num_samples = min(dim, num_samples)
         partition = np.argsort(Ra)
-        ta = Ra[partition[self.sketch_size]]
+        ta = Ra[partition[num_samples]]
 
         vHash = np.vectorize(hash1)
         vHash.excluded.add(1)
 
         vHash2 = np.vectorize(hash32int)
-        vHash.excluded.add(1)
-        vHash.excluded.add(2)
+        vHash2.excluded.add(1)
+        vHash2.excluded.add(2)
 
             
-        idxs = partition[:self.sketch_size].copy()
+        idxs = partition[:num_samples].copy()
         values = vector[idxs].copy() * vHash(idxs, self.seed + 1)
 
         idxs = np.int32(vHash2(idxs, self.seed + 2, self.key_size))
 
         return PSQSketch((idxs, values), ta, norm, self.seed)
+
+    def get_matrix(self):
+        return None
