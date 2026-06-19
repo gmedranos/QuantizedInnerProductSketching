@@ -148,7 +148,7 @@ class PSQ(InnerProdSketcher):
 
     def sketch(self, vector : np.ndarray) -> PSQSketch:
         dim = len(vector)
-        num_samples = self.sketch_size // int(16 + self.key_size + 1)
+        num_samples = self.sketch_size // int(16 + self.key_size)
         # Instead of Ka and Va, I'll just use a dictionary from idx to value
         Ka = {}
         norm = np.linalg.norm(vector)

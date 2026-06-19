@@ -110,7 +110,7 @@ class PSSketch(InnerProdSketch):
         for i in set1.intersection(set2):
             W1 += np.float64(self.K[1][self.K[0] == i]) * np.float32(other.K[1][other.K[0] == i]) / min(1, np.float32(self.K[1][self.K[0] == i]) ** 2 * self.t, np.float32(other.K[1][other.K[0] == i]) ** 2 * other.t)
 
-        return float(W1)
+        return W1
 
 class PS(InnerProdSketcher):
     def __init__(self, sketch_size: int, seed: int) -> None:

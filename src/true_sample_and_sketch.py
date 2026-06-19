@@ -120,33 +120,6 @@ class SandSSketch(InnerProdSketch):
         self.mode = mode
         self.vector = vector
         self.sketcher = sketcher
-
-    def inner_product(self, other, matrix=None):
-        sketcher = self.sketch_class(self.sketch_size, self.seed)
-        
-        W1, W2, W3, W4 = 0, 0, 0, 0
-
-        self.sketch.set_matrix(matrix)
-        other.sketch.set_matrix(matrix)
-        W1 = self.sampled_vector.toarray() @ other.sampled_vector.toarray()
-        if(self.mode != 'new'):
-            W2 = sketcher.sketch(self.sampled_vector.toarray()).inner_product(other.sketch)
-            W3 = sketcher.sketch(other.sampled_vector.toarray()).inner_product(self.sketch)
-        else:
-            W2 = self.sketch.QJL(other.sampled_vector.toarray())
-            W3 = other.sketch.QJL(self.sampled_vector.toarray())
-            
-        W4 = self.sketch.inner_product(other.sketch)
-
-        self.sketch.set_matrix(None)
-        other.sketch.set_matrix(None)
-
-        '''
-        print("True split")
-        print(self.sampled_vector.toarray() @ other.sampled_vector.toarray(), " ", self.vector @ other.sampled_vector, " ", self.sampled_vector @ other.vector, " ", self.vector @ other.vector)
-        print(angle(self.sampled_vector.toarray(), other.sampled_vector.toarray()), " ", angle(self.vector, other.sampled_vector), " ", angle(self.sampled_vector, other.vector), " ", angle(self.vector, other.vector))
-        '''
-        return W1 + W2 + W3 + W4
     
     def inner_product_asymetric(self, vec, matrix=None):
         sampled_vector = self.sampled_vector.toarray()
@@ -163,6 +136,32 @@ class SandSSketch(InnerProdSketch):
 
     def get_norm(self):
         return np.sqrt(np.linalg.norm(self.sampled_vector) ** 2 + self.sketch.get_norm()**2)
+
+    def inner_product(self, other, matrix=None):
+        sketcher = self.sketch_class(self.sketch_size, self.seed)
+        idxs = np.where((self.sampled_vector.toarray() != 0) & (other.sampled_vector.toarray() != 0))[0]
+
+        W1, W2, W3, W4 = 0, 0, 0, 0
+
+        self.sketch.set_matrix(matrix)
+        other.sketch.set_matrix(matrix)
+        W1 = self.sampled_vector.toarray() @ other.sampled_vector.toarray()
+
+        other_sampled_overlap = other.sampled_vector.toarray()
+        other_sampled_overlap[idxs] = 0 
+
+        self_sampled_overlap = self.sampled_vector.toarray()
+        self_sampled_overlap[idxs] = 0 
+
+        W2 = self.sketch.QJL(other_sampled_overlap)
+        W3 = other.sketch.QJL(self_sampled_overlap)
+            
+        W4 = self.sketch.inner_product(other.sketch)
+
+        self.sketch.set_matrix(None)
+        other.sketch.set_matrix(None)
+
+        return W1 + W2 + W3 + W4
 
 class Sample_and_sketch(InnerProdSketcher):
     def __init__(self, sketch_size: int, sketch_class, sample_size: int, seed: int, mode='new', dim=None) -> None:
