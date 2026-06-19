@@ -1,12 +1,39 @@
 # Quantized Inner Product Sketching
 
-### Requisites
-To run this code you should first clone [this repo](https://github.com/naver/splade) into a folder named SPLADE and install all of it's dependencies, create one folder for the figures, called "figs" and a folder for the data, 
-called "data". You should also download the dataset [MSMARCO](https://microsoft.github.io/msmarco/). I am using the Passage Retrieval collection and queries, that should be named "collection.tsv" and "queries.dev.tsv", 
-and should be put in the project folder.
+## Setup and Prerequisites
 
-### Running the code
+Before running the code, you need to set up your environment and download the required datasets.
 
-To create the embeddings, one should use the command `python3 super_script.py -vectors`
+### 1. Environment & Directories
+* **SPLADE:** Clone the [naver/splade](https://github.com/naver/splade) repository into a directory named `SPLADE` within your project root and install all of its dependencies.
+* **Directories:** Create the following empty folders in your project root:
+    * `figs/` (for storing generated figures)
+    * `data/` (for storing data)
 
-The experiments for the workshop paper are available in the three notebooks: "workshop_arxiv.ipynb", "workshop_splade.ipynb" and "workshop_synthetic_experiments.ipynb"
+### 2. Datasets
+You will need to download two datasets and place their files directly in the root of your project folder.
+
+**MS MARCO Dataset:**
+* Download the Passage Retrieval collection and queries from the [MS MARCO website](https://microsoft.github.io/msmarco/).
+* Rename the extracted files to `collection.tsv` and `queries.dev.tsv` and place them in the project folder.
+
+**arXiv Dataset:**
+* Download the `instructorxl-arxiv-768.hdf5` file from this [Google Drive link](https://drive.google.com/drive/folders/1f76UCrU52N2wToGMFg9ir1MY8ZocrN34).
+* Place the `.hdf5` file in the project folder.
+
+---
+
+## Running the Code
+
+### Creating Embeddings
+To generate the necessary embeddings, run the following command in your terminal:
+
+```bash
+python3 super_script.py -vectors
+```
+
+### Workshop Experiments
+The experiments associated with the workshop paper are provided in Jupyter Notebooks. You can explore and run them by opening the following files:
+* `workshop_arxiv.ipynb`
+* `workshop_splade.ipynb`
+* `workshop_synthetic_experiments.ipynb`
