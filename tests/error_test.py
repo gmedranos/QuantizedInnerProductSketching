@@ -32,7 +32,7 @@ class StandardVec():
         else:
             return self.vec @ other.vec
         
-def test_sketchers(list_sketcher_classes, list_sizes, trials, list_of_list_of_vecs, queries, list_names, title, markers=None):
+def test_sketchers(list_sketcher_classes, list_sizes, trials, list_of_list_of_vecs, queries, list_names, title, markers=None, colors=None):
 
     errors = []
     for sketcher_class in list_sketcher_classes:
@@ -60,16 +60,17 @@ def test_sketchers(list_sketcher_classes, list_sizes, trials, list_of_list_of_ve
         "text.usetex": True,
         "font.family": "serif",
         "font.serif": ["Times Roman"],
-        "font.size": 17
+        "font.size": 20
     })
 
-    colors = plt.cm.viridis(np.linspace(0, 0.9, len(errors)))
+    if (colors is None):
+        colors = plt.cm.viridis(np.linspace(0, 0.9, len(errors)))
 
     if markers is None:
         markers = ['x' for i in range(0, len(errors))]
 
     for i in range(0, len(errors)):
-        plt.plot(list_sizes, errors[i], marker=markers[i], color=colors[i], label=list_names[i])
+        plt.plot(list_sizes, errors[i], marker=markers[i], color=colors[i], label=list_names[i], linewidth=2)
 
 
     #plt.title(title)
@@ -88,7 +89,7 @@ def test_sketchers(list_sketcher_classes, list_sizes, trials, list_of_list_of_ve
     plt.close()
 
     fig_leg = plt.figure(figsize=(3,1))
-    fig_leg.legend(handles=handles, labels=labels, loc='center', ncol=len(handles))
+    fig_leg.legend(handles=handles, labels=labels, loc='center', ncol=3)
     plt.savefig("figs/" + title + "_legend.pdf", format="pdf", bbox_inches='tight')
     plt.close()
     
@@ -107,12 +108,12 @@ def get_top_k(vectors, q, k):
     else:
         return [i[1].vec for i in answer]
 
-def test_top_k_sketches(list_sketcher_classes, list_sizes, trials, vecs, queries, k, list_names, title, markers):
+def test_top_k_sketches(list_sketcher_classes, list_sizes, trials, vecs, queries, k, list_names, title, markers, colors=None):
     list_of_list_of_vectors = []
     for i in queries:
         list_of_list_of_vectors.append(get_top_k(vecs, i, k))
 
-    return test_sketchers(list_sketcher_classes, list_sizes, trials, list_of_list_of_vectors, queries, list_names, title, markers)
+    return test_sketchers(list_sketcher_classes, list_sizes, trials, list_of_list_of_vectors, queries, list_names, title, markers, colors)
 
 def test_sketchers_asym(list_sketcher_classes, list_sizes, trials, list_of_list_of_vecs, queries, list_names, title):
     errors = []
