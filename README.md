@@ -26,7 +26,8 @@ You will need to download two datasets and place their files directly in the roo
 ## Running the Code
 
 ### Creating Embeddings
-To generate the necessary embeddings, run the following command in your terminal:
+To generate the necessary embeddings, first, set the number of vectors you want to sketch by changing the parameter in line 41 of the super_script.py to your desired number.
+Then, run the following command in your terminal:
 
 ```bash
 python3 super_script.py -vectors
